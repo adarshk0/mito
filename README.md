@@ -16,4 +16,4 @@ output = model;
 Population values can can be accessed using dot notation. See <https://au.mathworks.com/help/matlab/matlab_prog/access-data-in-a-structure-array.html> for more information on using dot notation.
 
 ### Running code on non Linux systems
-This code uses [MEX](https://www.mathworks.com/help/matlab/ref/mex.html) files for performance. To run this code on a non Linux system replace `myo_odefun_mex` on line 34 of `main_myo.m` with `myo_odefun`. 
+This code uses [MEX](https://www.mathworks.com/help/matlab/ref/mex.html) files for performance. To run this code on a non Linux system, replace `myo_odefun_mex` on line 34 of `main_myo.m` with `myo_odefun`. 
