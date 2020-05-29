@@ -1,0 +1,40 @@
+function dydt = myo_odefun(t,y, CONSTANTS)
+    ALGEBRAIC = zeros(11,1);
+    dydt = zeros(16,1);
+    ALGEBRAIC(1) = mod(t, CONSTANTS(15));
+    ALGEBRAIC(2) = CONSTANTS(18)./(1+( CONSTANTS(17).*y(6).*y(2))./y(1));
+    ALGEBRAIC(3) = ALGEBRAIC(2);
+    if 0<=ALGEBRAIC(1)&&ALGEBRAIC(1)<CONSTANTS(13)
+        ALGEBRAIC(4) =  ALGEBRAIC(1).*ALGEBRAIC(3);
+    elseif CONSTANTS(13)<=ALGEBRAIC(1)&&ALGEBRAIC(1)<CONSTANTS(14)
+       ALGEBRAIC(4)=( ALGEBRAIC(3).*(CONSTANTS(14) - ALGEBRAIC(1)))./CONSTANTS(13);
+    elseif CONSTANTS(14)<=ALGEBRAIC(1)&&ALGEBRAIC(1)<CONSTANTS(15)
+        ALGEBRAIC(4) = 0;
+    else
+        ALGEBRAIC(4) = 0;
+    end
+    ALGEBRAIC(5) = y(1)./(1+CONSTANTS(20)./CONSTANTS(19));
+    ALGEBRAIC(6) = y(1) - ALGEBRAIC(5);
+    ALGEBRAIC(7) = y(2)./(1+CONSTANTS(20)./CONSTANTS(21));
+    ALGEBRAIC(8) = y(2) - ALGEBRAIC(7);
+    ALGEBRAIC(9) = 1+y(5)./CONSTANTS(3)+y(4)./CONSTANTS(7)+ ALGEBRAIC(6).*(1./CONSTANTS(2)+y(5)./( CONSTANTS(2).*CONSTANTS(4)))+ ALGEBRAIC(8).*(1./CONSTANTS(5)+y(4)./( CONSTANTS(7).*CONSTANTS(24))+y(5)./( CONSTANTS(5).*CONSTANTS(6)));
+    ALGEBRAIC(10) = (( CONSTANTS(9).*ALGEBRAIC(6).*y(5))./( CONSTANTS(2).*CONSTANTS(4)) - ( CONSTANTS(10).*ALGEBRAIC(8).*y(4))./( CONSTANTS(5).*CONSTANTS(8)))./ALGEBRAIC(9);
+    ALGEBRAIC(11) =  CONSTANTS(11).*ALGEBRAIC(7).*ALGEBRAIC(8) -  CONSTANTS(12).*ALGEBRAIC(6).*y(3);
+
+    dydt(1) = (  - CONSTANTS(23).*ALGEBRAIC(10)+ CONSTANTS(25).*ALGEBRAIC(11)) -  CONSTANTS(26).*ALGEBRAIC(4);
+    dydt(2) = ( CONSTANTS(23).*ALGEBRAIC(10) -  2.*CONSTANTS(25).*ALGEBRAIC(11))+ CONSTANTS(26).*ALGEBRAIC(4);
+    dydt(3) =  CONSTANTS(25).*ALGEBRAIC(11);
+    dydt(4) =  CONSTANTS(23).*ALGEBRAIC(10);
+    dydt(5) =   - CONSTANTS(23).*ALGEBRAIC(10);
+    dydt(6) =  CONSTANTS(26).*ALGEBRAIC(4);
+    dydt(7)  = 0;
+    dydt(8)  = 0;
+    dydt(9)  = 0;
+    dydt(10) = 0;
+    dydt(11) = 0;
+    dydt(12) = 0;
+    dydt(13) = 0;
+    dydt(14) = 0;
+    dydt(15) = 0;
+    dydt(16) = 0;
+end

@@ -1,0 +1,109 @@
+function sol = main_mito(tspan,y, M_basal, mass, isOnBoundary)
+% Initialise constants and state variables
+% ics(1) = ATPi
+% ics(2) = ADPi
+% ics(3) = AMPi
+% ics(4) = PCri
+% ics(5) = Cri
+% ics(6) = Pii
+% ics(7) = dPsi
+% ics(8) = H_x
+% ics(9) = NADH_x
+% ics(10) = Pi_x
+% ics(11) = QH2
+% ics(12) = Cred
+% ics(13) = O2
+% ics(14) = K_x
+% ics(15) = ATP_x
+% ics(16) = ADP_x
+
+CONSTANTS = zeros(76,1);
+
+ics = y;
+
+CONSTANTS(1) = 8.2012E3; % V1
+CONSTANTS(2) = 3.4452E4; % V11
+CONSTANTS(3) = 7.12E2; % Kia_G
+CONSTANTS(4) = 1.61E2; % Kia
+CONSTANTS(5) = 1.42E2; % Kic_G
+CONSTANTS(6) = 1.10E4; % Kic
+CONSTANTS(7) = 5.0E2; % Kd
+CONSTANTS(8) = 5.2E3; % Kb
+CONSTANTS(9) = 2.6E4; % Kib
+CONSTANTS(10) = 1.6E3; % Kid
+CONSTANTS(11) = 2.6E4; % KIb
+CONSTANTS(12) = 282.0; % KDDi
+CONSTANTS(13) = 380.0; % Mgi
+CONSTANTS(14) = 17.0; % KDTi
+CONSTANTS(15) = 0.0083; % R
+CONSTANTS(16) = 298.0; % T
+CONSTANTS(17) = 0.0965; % F
+CONSTANTS(18) = 0.861; % u
+CONSTANTS(19) = 10E6; % eta
+CONSTANTS(20) = 2.5; % na
+CONSTANTS(21) = 20; % param
+CONSTANTS(22) = 2.4734; % RT
+CONSTANTS(23) = 0.096484; % F
+CONSTANTS(24) = 3; % n_A
+CONSTANTS(25) = -69.37; % dG_C1o
+CONSTANTS(26) = -32.53; % dG_C3o
+CONSTANTS(27) = -122.94; % dG_C4o
+CONSTANTS(28) = 36.03; % dG_F1o
+CONSTANTS(29) = 7.1; % pH_e
+CONSTANTS(30) = 0.15e6; % K_e
+CONSTANTS(31) = 0; % ATP_e
+CONSTANTS(32) = 0; % AMP_e
+CONSTANTS(33) = 2.4e1; % K_DT
+CONSTANTS(34) = 3.47e2; % K_DD
+CONSTANTS(35) = 0.4331; % K_AK
+CONSTANTS(36) = 0.72376; % W_m
+CONSTANTS(37) = 5.99; % gamma
+CONSTANTS(38) = 0.0027e6; % Ctot
+CONSTANTS(39) = 0.00135e6; % Qtot
+CONSTANTS(40) = 0.00297e6; % NADtot
+CONSTANTS(41) = 1.3413e2; % k_Pi1
+CONSTANTS(42) = 6.7668e2; % k_Pi2
+CONSTANTS(43) = 1.9172e2; % k_Pi3
+CONSTANTS(44) = 0.02531e6; % k_Pi4
+CONSTANTS(45) = 4.5082e2; % k_PiH
+CONSTANTS(46) = 4.5807; % r
+CONSTANTS(47) = 0.09183; % x_DH
+CONSTANTS(48) = 0.36923; % x_C1
+CONSTANTS(49) = 0.091737; % x_C3
+CONSTANTS(50) = 3.2562e-5; % x_C4
+CONSTANTS(51) = 150.93e-6; % x_F1
+CONSTANTS(52) = 0.0079204e6; % x_ANT
+CONSTANTS(53) = 339430; % x_Pi1
+CONSTANTS(54) = 2.9802e1; % x_KH
+CONSTANTS(55) = 250; % x_Hle
+CONSTANTS(56) = 0; % x_K
+CONSTANTS(57) = 3.5e0; % k_mADP
+CONSTANTS(58) = 0; % x_AK
+CONSTANTS(59) = 85; % p_A
+CONSTANTS(60) = 1.2e2; % k_O2
+CONSTANTS(61) = 100e-6; % x_buff
+CONSTANTS(62) = 327; % x_Pi2
+CONSTANTS(63) = 1e-6; % mincond
+CONSTANTS(64) = 6.756756756756757; % C_im
+CONSTANTS(65) = 17.0; % KDTx
+CONSTANTS(66) = 380.0; % Mgx
+CONSTANTS(67) = 282.0; % KDDx
+CONSTANTS(68) = 1.0E3; % Mgext
+CONSTANTS(69) =  (9.00000./10).*CONSTANTS(36); % W_x
+CONSTANTS(70) =  1e6.*power(10,  - CONSTANTS(29)); % H_e
+CONSTANTS(71) =  1e6.*power(10,  - 6.75000); % k_dHPi
+CONSTANTS(72) =  1e6.*power(10,  - 6.48000); % k_dHatp
+CONSTANTS(73) =  1e6.*power(10,  - 6.29000); % k_dHadp
+CONSTANTS(74) = CONSTANTS(30); % K_i
+CONSTANTS(75) =  (1./10).*CONSTANTS(36); % W_i
+CONSTANTS(76) = CONSTANTS(70); % H_i
+
+% Apply feedback
+CONSTANTS(48:51) = (mass/M_basal)*CONSTANTS(48:51);
+CONSTANTS(55) = (2*M_basal/(M_basal+mass))*CONSTANTS(55);
+
+% Solve model with ODE solver
+[~,y] = ode15s(@(t,y) mito_odefun(t, y, CONSTANTS, isOnBoundary), tspan, ics);
+sol = y(end,:);
+
+end
