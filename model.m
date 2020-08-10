@@ -1,4 +1,7 @@
 function model_output = model
+% pars = [fuse, split, XATPase, O2, damage]
+index_input = 1; % filename 
+par = [1,1,0.05,47.25,0]; % model parameters
 mach_tol = 1e-9;
 
 % Generate spatial mesh:
@@ -7,13 +10,12 @@ mach_tol = 1e-9;
 dx = 1;
 dy = 0.75;
 
-
 xN = 79;
 yN = 21;
 uN = xN*yN;
 
 dt = 0.01;
-tf = 120;
+tf = dt;
 % Generate time mesh:
 % 	Simulate our model over the period of [0, tf]
 % 	The average duration of murine cardiac cycle is 180 milliseconds
@@ -47,39 +49,44 @@ L_nf=kron(Ax/dx^2,speye(yN))+kron(speye(xN),Ay/dy^2);
 Zh = sparse(size(L_nf,1), size(L_nf,2));
 
 % Diffusion coefficients
-diff_ANP = 145;
+diff_ANP = 30;
 diff_cr  = 260;
 diff_pi  = 327;
-diff_o   = 2410;
-
-% Workload (VO2)
-XATPase = 0.05; 
+diff_o   = 300;
 
 % Load ABM parameters
 M_single = 0.825;
 M_max = 43;
 M_basal = 22;
 
-lam_fuse = 0.0167;
-lam_split = 2e-3;
+lam_fuse = 0.0167*par(1);
+lam_split = 2e-3*par(2);
 lam_bio = 5.7670e-04;
 k_damage = 1e-3;
 
-damage_init = 0;
+damage_init = par(5);
 Td = 10;
 p_damage = 0.01;
 p_death  = 0.6;
 dam_c = 250;
 
 IE0 = 0.05;
-o2_val = 47.25;
+
+% Workload (VO2)
+XATPase = par(3);
+
+% Oxygen boundary
+o2_val = par(4);
 
 % Get inital states
 [t_index, fuse_event, split_event, biogen_event, stressor_event, mitochondria, damage,...
- atp, adp, amp, pcr, cr, pi, dpsi, h_x, nadh_x, pi_x, qh2, cred, o2, k_x, atp_x, ...
- adp_x] = getInitialState(damage_init);
-
+ atp, adp, amp, pcr, cr, pi, atp_ig, dpsi, h_x, nadh_x, pi_x, qh2, cred, o2, k_x, atp_x, ...
+ adp_x] = getInitialState([damage_init,tf]);
+ 
 % Imposing bdry conditions
+%o2 = o2/47.25;
+%o2 = o2_val*o2;
+
 o2(1,:) = o2_val;
 o2(end,:) = o2_val;
 o2(:,1) = o2_val;
@@ -95,6 +102,7 @@ for t=t_index:tN
     PCr		= pcr(:,:,t-1);
     Cr		= cr(:,:,t-1);
     Pi		= pi(:,:,t-1);
+    ATP_ig	= atp_ig(:,:,t-1);
     dPsi	= dpsi(:,:,t-1);
     H_x     = h_x(:,:,t-1);
     NADH_x	= nadh_x(:,:,t-1);
@@ -122,8 +130,9 @@ for t=t_index:tN
 
     will_fuse = rand(size(pFuse))<=pFuse;
     idf = ids(will_fuse); % ids of those that fuse
-    fuse_event(t) =sum(will_fuse); % log the number of fusion events
+    fuse_event(t) =sum(will_fuse); % log the number of fusion events 		
     ind = 1;
+    % Iterate over chosen mitochondria
     while numel(idf)>0 && ind<=numel(idf)
         n = idf(ind);
         % remove the index
@@ -291,56 +300,58 @@ for t=t_index:tN
     extra.M_basal = M_basal;
     extra.XATPase = XATPase;
     
-   % Construct diffusion operator
-   L = blkdiag(diff_ANP*L_nf*R, ...	
-               diff_ANP*L_nf*R, ...	
-               diff_ANP*L_nf*R, ...	
-               diff_cr*L_nf,...		
-               diff_cr*L_nf,...		
-               diff_pi*L_nf, ...		
-               Zh, 	...			
-               Zh,		...			
-               Zh, 	...			
-               Zh, 	...			
-               Zh, 	...			
-               Zh, 	...			
-               diff_o*L_diri,...		
-               Zh, 	...			
-               Zh, 	...			
-               Zh);				
+	% Construct diffusion operator
+	L = blkdiag(diff_ANP*L_nf, ...	% ATP
+			diff_ANP*L_nf, ...	% ADP
+			diff_ANP*L_nf, ...	% AMP
+			diff_cr*L_nf, ...	% PCr
+			diff_cr*L_nf, ...	% Cr
+			diff_pi*L_nf, ...	% Pi
+			Zh, ...				% ATP_ig
+			Zh,	...				% dPsi
+			Zh,	...				% H_x
+			Zh, ...				% NADH_x
+			Zh, ...				% Pi_x
+			Zh, ...				% QH2
+			Zh, ...				% Cred
+			diff_o*L_diri,...	% O2
+			Zh, ...				% K_x
+			Zh, ...				% ATP_x
+			Zh);				% ADP_x
 
-    STATES_INPUT  = [ATP(:); ADP(:); AMP(:); PCr(:); Cr(:); Pi(:); dPsi(:); H_x(:); NADH_x(:); Pi_x(:); QH2(:); Cred(:); O2(:); K_x(:); ATP_x(:); ADP_x(:)];
-    pde_out = pdesolve(tmesh(t), STATES_INPUT, L, extra);
+	STATES_INPUT  = [ATP(:); ADP(:); AMP(:); PCr(:); Cr(:); Pi(:); ATP_ig(:); dPsi(:); H_x(:); NADH_x(:); Pi_x(:); QH2(:); Cred(:); O2(:); K_x(:); ATP_x(:); ADP_x(:)];
+	pde_out = pdesolve(tmesh(t), STATES_INPUT, L, extra);
    
     % Update state variables
     mitochondria(:,:,t) = A;
     damage(:,:,t)= dam;
     
     % Purify values below machine epsilon to prevent numerical issues
-    atp(:,:,t)	  = purify(pde_out.ATP);
-    adp(:,:,t)	  = purify(pde_out.ADP);
-    amp(:,:,t)	  = purify(pde_out.AMP);
-    pcr(:,:,t)	  = purify(pde_out.PCr);
-    cr(:,:,t)	  = purify(pde_out.Cr);
-    pi(:,:,t)	  = purify(pde_out.Pi);
-    dpsi(:,:,t)	  = purify(pde_out.dPsi);
-    h_x(:,:,t)	  = purify(pde_out.H_x);
-    nadh_x(:,:,t) = purify(pde_out.NADH_x);
-    pi_x(:,:,t)	  = purify(pde_out.Pi_x);
-    qh2(:,:,t)	  = purify(pde_out.QH2);
-    cred(:,:,t)	  = purify(pde_out.Cred);
-    o2(:,:,t)	  = purify(pde_out.O2);
-    k_x(:,:,t) 	  = purify(pde_out.K_x);
-    atp_x(:,:,t)  = purify(pde_out.ATP_x);
-    adp_x(:,:,t)  = purify(pde_out.ADP_x);
-    
-end
+	atp(:,:,t)	  = purify(pde_out.ATP);
+	adp(:,:,t)	  = purify(pde_out.ADP);
+	amp(:,:,t)	  = purify(pde_out.AMP);
+	pcr(:,:,t)	  = purify(pde_out.PCr);
+	cr(:,:,t)	  = purify(pde_out.Cr);
+	pi(:,:,t)	  = purify(pde_out.Pi);
+	atp_ig(:,:,t) = purify(pde_out.ATP_ig);
+	dpsi(:,:,t)	  = purify(pde_out.dPsi);
+	h_x(:,:,t)	  = purify(pde_out.H_x);
+	nadh_x(:,:,t) = purify(pde_out.NADH_x);
+	pi_x(:,:,t)	  = purify(pde_out.Pi_x);
+	qh2(:,:,t)	  = purify(pde_out.QH2);
+	cred(:,:,t)	  = purify(pde_out.Cred);
+	o2(:,:,t)	  = purify(pde_out.O2);
+	k_x(:,:,t) 	  = purify(pde_out.K_x);
+	atp_x(:,:,t)  = purify(pde_out.ATP_x);
+	adp_x(:,:,t)  = purify(pde_out.ADP_x);
 
-    
+
+end
 tak1 = min(reshape( mean( mean(o2 , 3), 1) ,1,[])');
 tak2 = min(reshape( mean( mean(o2 , 3), 2) ,1,[])');
 
 model_output.tak = [tak1; tak2];
+
 % Store our results
 model_output.M 		= mitochondria;
 model_output.d 		= damage;
@@ -350,6 +361,7 @@ model_output.AMP	= amp;
 model_output.PCr	= pcr;
 model_output.Cr		= cr;
 model_output.Pi		= pi;
+model_output.ATP_ig	= atp_ig;
 model_output.dPsi	= dpsi;
 model_output.H_x	= h_x;
 model_output.NADH_x	= nadh_x;
@@ -366,8 +378,7 @@ model_output.split 	= split_event;
 model_output.biogen = biogen_event;
 model_output.stress = stressor_event;
 
-
-fileName = ['mitoSim.mat'];
+fileName = ['runNumber',num2str(index_input),'_fuse',num2str(par(1)),'_split',num2str(par(2)),'_xatpase',num2str(par(3)),'_o2bdry',num2str(par(4)),'_damage',num2str(par(5)),'.mat'];
 save(fileName,'model_output','-v7.3');
 
 % Auxiliary functions
