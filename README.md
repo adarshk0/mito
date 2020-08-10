@@ -4,9 +4,9 @@ A set of code to simulate the effect of mitochondrial dynamics on the bioenerget
 
 ## Requirements
 
-- MATLAB (R2018b or higher)
-- Parallel Computing Toolbox (version 6.13)
-- MATLAB Distributed Computing Server (version 6.13)
+- MATLAB (R2018a or higher)
+- Parallel Computing Toolbox (version 6.12)
+- MATLAB Distributed Computing Server (version 6.12)
 
 ## Usage
 To run the model and save the output in a variable called `output` use
